@@ -155,7 +155,7 @@ router.post('/:id/payments', authenticateToken, async (req, res) => {
     // Run within user session context so trigger_audit_invoice_changes captures user_id!
     await withUserTransaction(req.user.user_id, async (client) => {
       // Call procedure process_invoice_payment(p_invoice_id, p_amount, p_method)
-      await client.query('CALL process_invoice_payment($1, $2, $3)', [
+      await client.query('CALL process_invoice_payment($1::INT, $2::NUMERIC, $3::VARCHAR)', [
         parseInt(id, 10),
         parseFloat(amount_paid),
         payment_method,

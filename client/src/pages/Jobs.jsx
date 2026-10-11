@@ -651,36 +651,19 @@ export default function Jobs() {
       >
         <form onSubmit={handleCreateJob}>
           <div className="form-group">
-            <label className="form-label">Customer</label>
-            <select
-              className="form-select"
-              value={newJobForm.customer_id}
-              onChange={(e) => {
-                const cId = e.target.value;
-                setNewJobForm((prev) => ({
-                  ...prev,
-                  customer_id: cId,
-                  // reset vehicle if it doesn't belong to this customer
-                  vehicle_id: '',
-                }));
-              }}
-              required
-            >
-              <option value="">-- Select Customer --</option>
-              {customersList.map((c) => (
-                <option key={c.customer_id} value={c.customer_id}>
-                  {c.full_name} ({c.phone || c.email})
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">Vehicle</label>
+            <label className="form-label">Vehicle (Required)</label>
             <select
               className="form-select"
               value={newJobForm.vehicle_id}
-              onChange={(e) => setNewJobForm((prev) => ({ ...prev, vehicle_id: e.target.value }))}
+              onChange={(e) => {
+                const vId = e.target.value;
+                const foundV = vehiclesList.find(v => v.vehicle_id === parseInt(vId, 10));
+                setNewJobForm((prev) => ({
+                  ...prev,
+                  vehicle_id: vId,
+                  customer_id: foundV ? String(foundV.customer_id) : prev.customer_id,
+                }));
+              }}
               required
             >
               <option value="">-- Select Vehicle --</option>
@@ -688,9 +671,36 @@ export default function Jobs() {
                 .filter((v) => !newJobForm.customer_id || v.customer_id === parseInt(newJobForm.customer_id, 10))
                 .map((v) => (
                   <option key={v.vehicle_id} value={v.vehicle_id}>
-                    {v.license_plate} - {v.make} {v.model} ({v.year})
+                    {v.license_plate} - {v.make} {v.model} ({v.year}) [Owner: {v.customer_name}]
                   </option>
                 ))}
+            </select>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Customer / Vehicle Owner (Required)</label>
+            <select
+              className="form-select"
+              value={newJobForm.customer_id}
+              onChange={(e) => {
+                const cId = e.target.value;
+                setNewJobForm((prev) => {
+                  const currentVehicleBelongs = prev.vehicle_id && vehiclesList.find(v => v.vehicle_id === parseInt(prev.vehicle_id, 10))?.customer_id === parseInt(cId, 10);
+                  return {
+                    ...prev,
+                    customer_id: cId,
+                    vehicle_id: currentVehicleBelongs ? prev.vehicle_id : '',
+                  };
+                });
+              }}
+              required
+            >
+              <option value="">-- Select Customer --</option>
+              {customersList.map((c) => (
+                <option key={c.customer_id} value={c.customer_id}>
+                  {c.full_name} ({c.phone || c.email || `ID #${c.customer_id}`})
+                </option>
+              ))}
             </select>
           </div>
 

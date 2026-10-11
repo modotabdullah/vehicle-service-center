@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 
 export default function Modal({ isOpen, onClose, title, children, maxWidth = '550px' }) {
@@ -18,36 +19,40 @@ export default function Modal({ isOpen, onClose, title, children, maxWidth = '55
 
   if (!isOpen) return null;
 
-  return (
+  const modalNode = (
     <div 
       style={{
         position: 'fixed',
-        inset: 0,
-        zIndex: 1000,
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 99999,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: 'rgba(28, 37, 65, 0.45)',
-        backdropFilter: 'blur(4px)',
-        padding: '20px',
+        backgroundColor: 'rgba(28, 37, 65, 0.55)',
+        backdropFilter: 'blur(6px)',
+        padding: '24px',
+        overflowY: 'auto',
       }}
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
       <div 
-        className="animate-fade-in"
         style={{
           width: '100%',
           maxWidth,
           backgroundColor: '#FFFFFF',
           borderRadius: 'var(--radius-md)',
-          boxShadow: 'var(--shadow-lg)',
-          border: '1px solid var(--metallic-mist)',
+          boxShadow: '0 20px 40px -10px rgba(61, 82, 160, 0.3), 0 0 0 1px var(--metallic-mist)',
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
-          maxHeight: '90vh',
+          maxHeight: 'calc(100vh - 48px)',
+          margin: 'auto',
+          animation: 'fadeIn 0.2s ease-out forwards',
         }}
       >
         {/* Header */}
@@ -59,13 +64,15 @@ export default function Modal({ isOpen, onClose, title, children, maxWidth = '55
             alignItems: 'center',
             justifyContent: 'space-between',
             background: 'var(--metallic-silk)',
+            flexShrink: 0,
           }}
         >
-          <h3 style={{ fontSize: '1.15rem', color: 'var(--metallic-dark)', margin: 0 }}>
+          <h3 style={{ fontSize: '1.15rem', color: 'var(--metallic-dark)', margin: 0, fontWeight: 700 }}>
             {title}
           </h3>
           <button
             onClick={onClose}
+            type="button"
             style={{
               background: 'transparent',
               border: 'none',
@@ -74,20 +81,30 @@ export default function Modal({ isOpen, onClose, title, children, maxWidth = '55
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              padding: '4px',
+              padding: '6px',
               borderRadius: 'var(--radius-sm)',
-              transition: 'background 0.15s ease',
+              transition: 'all 0.15s ease',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = 'var(--metallic-mist)';
+              e.currentTarget.style.color = 'var(--metallic-dark)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'transparent';
+              e.currentTarget.style.color = 'var(--text-muted)';
             }}
           >
             <X size={20} />
           </button>
         </div>
 
-        {/* Body */}
-        <div style={{ padding: '24px', overflowY: 'auto' }}>
+        {/* Scrollable Body */}
+        <div style={{ padding: '24px', overflowY: 'auto', flex: 1 }}>
           {children}
         </div>
       </div>
     </div>
   );
+
+  return createPortal(modalNode, document.body);
 }

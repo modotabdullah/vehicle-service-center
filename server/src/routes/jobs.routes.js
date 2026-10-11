@@ -156,13 +156,24 @@ router.post('/', authenticateToken, requireRole('system_admin', 'service_advisor
       return res.status(400).json({ message: 'vehicle_id and customer_id are required' });
     }
 
+    const vId = parseInt(vehicle_id, 10);
+    const cId = parseInt(customer_id, 10);
+    const mId = mechanic_id ? parseInt(mechanic_id, 10) : null;
+
     // Call stored procedure create_service_job(p_vehicle_id, p_customer_id, p_mechanic_id, INOUT p_job_id)
     const procResult = await query(
-      'CALL create_service_job($1, $2, $3, $4)',
-      [vehicle_id, customer_id, mechanic_id || null, null]
+      'CALL create_service_job($1::INT, $2::INT, $3::INT, NULL)',
+      [vId, cId, mId]
     );
 
-    const newJobId = procResult.rows[0]?.p_job_id;
+    let newJobId = procResult.rows[0]?.p_job_id;
+    if (!newJobId) {
+      const fallback = await query(
+        'SELECT job_id FROM service_job WHERE vehicle_id = $1 ORDER BY job_id DESC LIMIT 1',
+        [vId]
+      );
+      newJobId = fallback.rows[0]?.job_id;
+    }
 
     res.status(201).json({
       message: 'Service job created successfully',
