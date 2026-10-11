@@ -1,0 +1,99 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 170" width="100%" height="100%">
+  <!-- Garage Frame & Pillars (Navy/Dark Blue #122544) -->
+  <line x1="18" y1="158" x2="182" y2="158" stroke="#122544" stroke-width="6" stroke-linecap="round" />
+  <line x1="28" y1="68" x2="28" y2="158" stroke="#122544" stroke-width="5.5" stroke-linecap="round" />
+  <line x1="172" y1="68" x2="172" y2="158" stroke="#122544" stroke-width="5.5" stroke-linecap="round" />
+
+  <!-- Coral-Red Gable Roof (#FA5847) -->
+  <path 
+    d="M 12 76 L 100 8 L 188 76" 
+    fill="none" 
+    stroke="#FA5847" 
+    stroke-width="14" 
+    stroke-linecap="round" 
+    stroke-linejoin="round" 
+  />
+
+  <!-- Floating Horizontal Wrench (#122544) -->
+  <g class="logo-wrench">
+    <path 
+      d="M 52 74 
+         C 55 64, 65 60, 74 65 
+         C 78 67, 80 67, 86 67 
+         L 114 67 
+         C 120 67, 122 67, 126 65 
+         C 135 60, 145 64, 148 74 
+         C 145 80, 137 84, 129 80 
+         C 125 78, 121 78, 114 78 
+         L 86 78 
+         C 79 78, 75 78, 71 80 
+         C 63 84, 55 80, 52 74 Z" 
+      fill="#122544" 
+    />
+    <!-- Wrench head left cutout -->
+    <path d="M 52 74 C 58 74, 63 71, 63 67 C 63 63, 58 60, 52 60" fill="none" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" />
+    <!-- Wrench head right cutout -->
+    <path d="M 148 74 C 142 74, 137 77, 137 81 C 137 85, 142 88, 148 88" fill="none" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" />
+  </g>
+
+  <!-- Clean Floating Double-Ended Wrench Exact Silhouette -->
+  <path 
+    d="M 58 76
+       C 52 69, 56 61, 64 61
+       C 69 61, 74 64, 78 68
+       L 122 68
+       C 126 64, 131 61, 136 61
+       C 144 61, 148 69, 142 76
+       C 148 83, 144 91, 136 91
+       C 131 91, 126 88, 122 84
+       L 78 84
+       C 74 88, 69 91, 64 91
+       C 56 91, 52 83, 58 76 Z"
+    fill="#122544"
+  />
+  <!-- Left Spanner Mouth Cutout -->
+  <polygon points="48,76 66,71 66,81" fill="#FFFFFF" />
+  <!-- Right Spanner Mouth Cutout -->
+  <polygon points="152,76 134,71 134,81" fill="#FFFFFF" />
+
+  <!-- Car Silhouette (#15181C) parked inside -->
+  <g class="logo-car">
+    <!-- Left & Right Wheels -->
+    <rect x="50" y="150" width="16" height="15" rx="5" fill="#15181C" />
+    <rect x="134" y="150" width="16" height="15" rx="5" fill="#15181C" />
+
+    <!-- Side Mirrors -->
+    <ellipse cx="56" cy="122" rx="5" ry="3.5" fill="#15181C" />
+    <ellipse cx="144" cy="122" rx="5" ry="3.5" fill="#15181C" />
+
+    <!-- Car Cabin Roof & Body -->
+    <path 
+      d="M 68 102 
+         C 74 98, 126 98, 132 102 
+         C 137 106, 141 116, 145 125 
+         C 151 126, 153 132, 152 142 
+         C 152 153, 147 158, 140 158 
+         L 60 158 
+         C 53 158, 48 153, 48 142 
+         C 47 132, 49 126, 55 125 
+         C 59 116, 63 106, 68 102 Z" 
+      fill="#15181C" 
+    />
+
+    <!-- Windshield Glass (#C8E6F7) -->
+    <path 
+      d="M 73 106 
+         C 80 104, 120 104, 127 106 
+         C 131 110, 134 118, 137 124 
+         L 63 124 
+         C 66 118, 69 110, 73 106 Z" 
+      fill="#C8E6F7" 
+    />
+
+    <!-- Left Headlight (#E6EDF5) -->
+    <ellipse cx="68" cy="142" rx="9" ry="4.5" transform="rotate(-8 68 142)" fill="#E6EDF5" />
+
+    <!-- Right Headlight (#E6EDF5) -->
+    <ellipse cx="132" cy="142" rx="9" ry="4.5" transform="rotate(8 132 142)" fill="#E6EDF5" />
+  </g>
+</svg>

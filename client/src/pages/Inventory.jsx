@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
 import Modal from '../components/Modal';
-import { Package, Plus, Search, AlertTriangle, CheckCircle, RefreshCw } from 'lucide-react';
+import { Package, Plus, Search, AlertTriangle, CheckCircle, RefreshCw, TrendingDown } from 'lucide-react';
 
 export default function Inventory() {
   const { hasRole } = useAuth();
@@ -11,7 +11,6 @@ export default function Inventory() {
   const [search, setSearch] = useState('');
   const [onlyLowStock, setOnlyLowStock] = useState(false);
 
-  // Add Part Modal
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [newPartForm, setNewPartForm] = useState({
     part_name: '',
@@ -21,9 +20,8 @@ export default function Inventory() {
     reorder_level: '',
   });
 
-  // Restock Modal
   const [selectedPart, setSelectedPart] = useState(null);
-  const [restockAmount, setRestockAmount] = useState('');
+  const [restockAmount, setRestockAmount] = useState('10');
 
   const fetchInventory = async () => {
     setLoading(true);
@@ -42,16 +40,10 @@ export default function Inventory() {
     }
   };
 
-  useEffect(() => {
-    fetchInventory();
-  }, [onlyLowStock]);
+  useEffect(() => { fetchInventory(); }, [onlyLowStock]);
 
-  const handleSearchSubmit = (e) => {
-    e.preventDefault();
-    fetchInventory();
-  };
+  const handleSearchSubmit = (e) => { e.preventDefault(); fetchInventory(); };
 
-  // Add Part Submit
   const handleAddPart = async (e) => {
     e.preventDefault();
     try {
@@ -59,13 +51,11 @@ export default function Inventory() {
       setIsAddModalOpen(false);
       setNewPartForm({ part_name: '', part_number: '', unit_price: '', quantity_in_stock: '', reorder_level: '' });
       fetchInventory();
-      alert('Spare part added to catalog!');
     } catch (err) {
       alert(`Error creating part: ${err.message}`);
     }
   };
 
-  // Restock Submit
   const handleRestock = async (e) => {
     e.preventDefault();
     if (!selectedPart || !restockAmount) return;
@@ -73,27 +63,24 @@ export default function Inventory() {
       const newStock = parseInt(selectedPart.quantity_in_stock, 10) + parseInt(restockAmount, 10);
       await api.inventory.update(selectedPart.part_id, { quantity_in_stock: newStock });
       setSelectedPart(null);
-      setRestockAmount('');
+      setRestockAmount('10');
       fetchInventory();
-      alert(`Stock updated! New quantity: ${newStock}`);
     } catch (err) {
       alert(`Error updating stock: ${err.message}`);
     }
   };
 
-  return (
-    <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '14px' }}>
-        <div>
-          <h2 style={{ fontSize: '1.6rem', color: 'var(--metallic-dark)', marginBottom: '4px' }}>
-            Spare Parts & Inventory
-          </h2>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
-            Manage warehouse parts stock, reorder thresholds, and unit costs.
-          </p>
-        </div>
+  const lowStockCount = parts.filter(p => parseInt(p.quantity_in_stock, 10) <= parseInt(p.reorder_level, 10)).length;
 
+  return (
+    <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
+
+      {/* Header */}
+      <div className="section-header">
+        <div>
+          <h2 className="section-title">Parts &amp; Inventory</h2>
+          <p className="section-subtitle">Manage warehouse parts stock, reorder thresholds &amp; unit costs.</p>
+        </div>
         {hasRole('system_admin', 'service_advisor') && (
           <button className="btn btn-primary" onClick={() => setIsAddModalOpen(true)}>
             <Plus size={16} />
@@ -102,47 +89,106 @@ export default function Inventory() {
         )}
       </div>
 
-      {/* Action & Filter Bar */}
-      <div 
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: '12px',
-          backgroundColor: '#FFFFFF',
-          padding: '12px 16px',
-          borderRadius: 'var(--radius-md)',
-          border: '1px solid var(--border-subtle)',
-          boxShadow: 'var(--shadow-sm)',
-        }}
-      >
-        <div style={{ display: 'flex', gap: '8px' }}>
+      {/* Summary Pills */}
+      {!loading && (
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', animation: 'fadeIn 0.4s 0.1s var(--ease-spring) both' }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '8px 16px',
+              borderRadius: 'var(--radius-full)',
+              backgroundColor: 'var(--status-completed-bg)',
+              border: '1.5px solid rgba(5,150,105,0.2)',
+              fontSize: '0.82rem',
+              fontWeight: 700,
+              color: 'var(--status-completed)',
+            }}
+          >
+            <CheckCircle size={14} />
+            {parts.length - lowStockCount} healthy parts
+          </div>
+          {lowStockCount > 0 && (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '8px 16px',
+                borderRadius: 'var(--radius-full)',
+                backgroundColor: 'var(--status-cancelled-bg)',
+                border: '1.5px solid rgba(220,38,38,0.2)',
+                fontSize: '0.82rem',
+                fontWeight: 700,
+                color: 'var(--status-cancelled)',
+              }}
+            >
+              <TrendingDown size={14} />
+              {lowStockCount} parts need reorder
+            </div>
+          )}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '8px 16px',
+              borderRadius: 'var(--radius-full)',
+              backgroundColor: 'var(--metallic-silk)',
+              border: '1.5px solid var(--metallic-mist)',
+              fontSize: '0.82rem',
+              fontWeight: 700,
+              color: 'var(--metallic-dark)',
+            }}
+          >
+            <Package size={14} />
+            {parts.length} total SKUs
+          </div>
+        </div>
+      )}
+
+      {/* Filter Bar */}
+      <div className="filter-bar">
+        <div style={{ display: 'flex', gap: '6px' }}>
           <button
-            className={`btn btn-sm ${!onlyLowStock ? 'btn-primary' : 'btn-secondary'}`}
+            className={`tab-btn ${!onlyLowStock ? 'active' : ''}`}
             onClick={() => setOnlyLowStock(false)}
           >
             All Parts
           </button>
           <button
-            className={`btn btn-sm ${onlyLowStock ? 'btn-primary' : 'btn-secondary'}`}
+            className={`tab-btn ${onlyLowStock ? 'active' : ''}`}
             onClick={() => setOnlyLowStock(true)}
-            style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+            style={{ display: 'flex', alignItems: 'center', gap: '5px' }}
           >
-            <AlertTriangle size={14} />
-            <span>Low Stock (View)</span>
+            <AlertTriangle size={13} />
+            Low Stock
           </button>
         </div>
 
-        <form onSubmit={handleSearchSubmit} style={{ display: 'flex', gap: '8px', minWidth: '260px' }}>
-          <input
-            type="text"
-            className="form-input"
-            placeholder="Search part name or number..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            style={{ padding: '6px 12px', fontSize: '0.8rem', flex: 1 }}
-          />
+        <form onSubmit={handleSearchSubmit} style={{ display: 'flex', gap: '8px', minWidth: '240px' }}>
+          <div style={{ position: 'relative', flex: 1 }}>
+            <Search
+              size={14}
+              style={{
+                position: 'absolute',
+                left: '11px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                color: 'var(--text-light)',
+                pointerEvents: 'none',
+              }}
+            />
+            <input
+              type="text"
+              className="form-input"
+              placeholder="Search part name or SKU..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              style={{ paddingLeft: '32px', padding: '7px 12px 7px 32px', fontSize: '0.8rem' }}
+            />
+          </div>
           <button type="submit" className="btn btn-sm btn-secondary">
             <Search size={14} />
           </button>
@@ -155,54 +201,72 @@ export default function Inventory() {
           <thead>
             <tr>
               <th>Part Name</th>
-              <th>Part Number</th>
+              <th>Part SKU</th>
               <th>Unit Price</th>
               <th>Current Stock</th>
-              <th>Reorder Threshold</th>
+              <th>Reorder Level</th>
               <th>Status</th>
-              {hasRole('system_admin', 'service_advisor') && <th style={{ textAlign: 'right' }}>Actions</th>}
+              {hasRole('system_admin', 'service_advisor') && <th style={{ textAlign: 'right' }}>Action</th>}
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr>
-                <td colSpan="7" style={{ textAlign: 'center', padding: '36px', color: 'var(--text-muted)' }}>
-                  Loading spare parts catalog...
-                </td>
-              </tr>
+              Array.from({ length: 5 }).map((_, i) => (
+                <tr key={i}>
+                  {Array.from({ length: hasRole('system_admin', 'service_advisor') ? 7 : 6 }).map((_, j) => (
+                    <td key={j}>
+                      <div className="skeleton" style={{ height: '16px', borderRadius: '6px' }} />
+                    </td>
+                  ))}
+                </tr>
+              ))
             ) : parts.length === 0 ? (
               <tr>
-                <td colSpan="7" style={{ textAlign: 'center', padding: '36px', color: 'var(--text-muted)' }}>
-                  No spare parts found.
+                <td colSpan="7">
+                  <div className="empty-state">
+                    <div className="empty-state-icon"><Package size={28} /></div>
+                    <h4>No parts found</h4>
+                    <p>Your inventory catalog is empty or no results match your search.</p>
+                  </div>
                 </td>
               </tr>
             ) : (
               parts.map((p) => {
                 const isLow = parseInt(p.quantity_in_stock, 10) <= parseInt(p.reorder_level, 10);
                 return (
-                  <tr key={p.part_id}>
+                  <tr key={p.part_id} style={isLow ? { backgroundColor: 'rgba(254,242,242,0.4)' } : {}}>
                     <td>
-                      <strong style={{ color: 'var(--metallic-dark)' }}>{p.part_name}</strong>
+                      <strong style={{ color: 'var(--metallic-dark)', fontWeight: 700 }}>{p.part_name}</strong>
                     </td>
                     <td>
-                      <code style={{ fontSize: '0.75rem', backgroundColor: 'var(--metallic-silk)', color: 'var(--metallic-dark)' }}>
-                        {p.part_number}
-                      </code>
+                      <code>{p.part_number}</code>
                     </td>
-                    <td>৳ {parseFloat(p.unit_price).toLocaleString()}</td>
+                    <td style={{ fontWeight: 600 }}>৳ {parseFloat(p.unit_price).toLocaleString()}</td>
                     <td>
-                      <span style={{ fontWeight: 700, fontSize: '0.95rem', color: isLow ? '#D13438' : 'var(--text-main)' }}>
-                        {p.quantity_in_stock}
-                      </span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span
+                          style={{
+                            fontWeight: 800,
+                            fontSize: '1rem',
+                            color: isLow ? '#DC2626' : 'var(--text-main)',
+                            fontFamily: 'var(--font-heading)',
+                          }}
+                        >
+                          {p.quantity_in_stock}
+                        </span>
+                        {isLow && (
+                          <AlertTriangle size={14} color="#DC2626" style={{ flexShrink: 0 }} />
+                        )}
+                      </div>
                     </td>
-                    <td>{p.reorder_level}</td>
+                    <td style={{ color: 'var(--text-muted)', fontWeight: 500 }}>{p.reorder_level}</td>
                     <td>
                       {isLow ? (
-                        <span className="badge badge-cancelled" style={{ gap: '4px' }}>
+                        <span className="badge badge-cancelled" style={{ gap: '5px' }}>
                           <AlertTriangle size={11} /> Reorder Needed
                         </span>
                       ) : (
-                        <span className="badge badge-completed" style={{ gap: '4px' }}>
+                        <span className="badge badge-completed" style={{ gap: '5px' }}>
                           <CheckCircle size={11} /> Healthy
                         </span>
                       )}
@@ -233,7 +297,7 @@ export default function Inventory() {
       <Modal
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
-        title="Add New Inventory Spare Part"
+        title="Add New Inventory Part"
       >
         <form onSubmit={handleAddPart}>
           <div className="form-group">
@@ -249,7 +313,7 @@ export default function Inventory() {
           </div>
 
           <div className="form-group">
-            <label className="form-label">Part Number (Unique SKU)</label>
+            <label className="form-label">Part SKU / Number (Unique)</label>
             <input
               type="text"
               className="form-input"
@@ -266,7 +330,7 @@ export default function Inventory() {
               type="number"
               step="0.01"
               className="form-input"
-              placeholder="e.g. 1500"
+              placeholder="e.g. 1500.00"
               value={newPartForm.unit_price}
               onChange={(e) => setNewPartForm({ ...newPartForm, unit_price: e.target.value })}
               required
@@ -275,7 +339,7 @@ export default function Inventory() {
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
             <div className="form-group">
-              <label className="form-label">Initial Stock</label>
+              <label className="form-label">Initial Stock Quantity</label>
               <input
                 type="number"
                 min="0"
@@ -288,7 +352,7 @@ export default function Inventory() {
             </div>
 
             <div className="form-group">
-              <label className="form-label">Reorder Alert Level</label>
+              <label className="form-label">Reorder Alert Threshold</label>
               <input
                 type="number"
                 min="0"
@@ -301,8 +365,23 @@ export default function Inventory() {
             </div>
           </div>
 
-          <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '8px' }}>
-            Save Spare Part
+          <div
+            style={{
+              padding: '10px 14px',
+              backgroundColor: 'var(--status-progress-bg)',
+              borderRadius: 'var(--radius-sm)',
+              border: '1px solid var(--metallic-mist)',
+              fontSize: '0.82rem',
+              color: 'var(--metallic-dark)',
+              marginBottom: '20px',
+            }}
+          >
+            💡 Once parts are added, they appear in the job card&apos;s parts allocation dropdown for mechanics to use.
+          </div>
+
+          <button type="submit" className="btn btn-primary" style={{ width: '100%', padding: '13px' }}>
+            <Package size={16} />
+            Save Part to Catalog
           </button>
         </form>
       </Modal>
@@ -315,11 +394,29 @@ export default function Inventory() {
       >
         {selectedPart && (
           <form onSubmit={handleRestock}>
-            <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: '16px' }}>
-              Current Stock in Warehouse: <strong>{selectedPart.quantity_in_stock}</strong> units.
-            </p>
+            <div className="info-grid" style={{ marginBottom: '20px' }}>
+              <div className="info-cell">
+                <label>Part</label>
+                <div className="info-value">{selectedPart.part_name}</div>
+                <div className="info-sub"><code>{selectedPart.part_number}</code></div>
+              </div>
+              <div className="info-cell">
+                <label>Current Stock</label>
+                <div
+                  className="info-value"
+                  style={{
+                    color: parseInt(selectedPart.quantity_in_stock, 10) <= parseInt(selectedPart.reorder_level, 10)
+                      ? '#DC2626'
+                      : 'var(--status-completed)',
+                  }}
+                >
+                  {selectedPart.quantity_in_stock} units
+                </div>
+                <div className="info-sub">Reorder at: {selectedPart.reorder_level}</div>
+              </div>
+            </div>
 
-            <div className="form-group">
+            <div className="form-group" style={{ marginBottom: '24px' }}>
               <label className="form-label">Quantity to Add</label>
               <input
                 type="number"
@@ -329,9 +426,17 @@ export default function Inventory() {
                 onChange={(e) => setRestockAmount(e.target.value)}
                 required
               />
+              {restockAmount && (
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                  New total will be: <strong style={{ color: 'var(--status-completed)' }}>
+                    {parseInt(selectedPart.quantity_in_stock, 10) + parseInt(restockAmount || 0, 10)} units
+                  </strong>
+                </span>
+              )}
             </div>
 
-            <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>
+            <button type="submit" className="btn btn-primary" style={{ width: '100%', padding: '13px' }}>
+              <RefreshCw size={16} />
               Confirm Restock (+{restockAmount} units)
             </button>
           </form>

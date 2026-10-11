@@ -132,15 +132,21 @@ export default function Invoices() {
           </thead>
           <tbody>
             {loading ? (
-              <tr>
-                <td colSpan="9" style={{ textAlign: 'center', padding: '36px', color: 'var(--text-muted)' }}>
-                  Loading invoices...
-                </td>
-              </tr>
+              Array.from({ length: 4 }).map((_, i) => (
+                <tr key={i}>
+                  {Array.from({ length: 9 }).map((_, j) => (
+                    <td key={j}><div className="skeleton" style={{ height: '16px', borderRadius: '6px' }} /></td>
+                  ))}
+                </tr>
+              ))
             ) : invoices.length === 0 ? (
               <tr>
-                <td colSpan="9" style={{ textAlign: 'center', padding: '36px', color: 'var(--text-muted)' }}>
-                  No invoices found.
+                <td colSpan="9">
+                  <div className="empty-state">
+                    <div className="empty-state-icon"><Receipt size={28} /></div>
+                    <h4>No invoices found</h4>
+                    <p>Generate an invoice from a completed job card to see it here.</p>
+                  </div>
                 </td>
               </tr>
             ) : (
@@ -149,7 +155,7 @@ export default function Invoices() {
                 return (
                   <tr key={inv.invoice_id}>
                     <td>
-                      <strong style={{ color: 'var(--metallic-dark)' }}>
+                      <strong style={{ color: 'var(--metallic-dark)', fontFamily: 'var(--font-heading)', fontSize: '0.95rem', fontWeight: 800 }}>
                         INV-{inv.invoice_id.toString().padStart(4, '0')}
                       </strong>
                     </td>
@@ -198,17 +204,9 @@ export default function Invoices() {
         {selectedInvoice && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             {paymentMsg && (
-              <div
-                style={{
-                  padding: '10px 14px',
-                  borderRadius: 'var(--radius-sm)',
-                  fontSize: '0.825rem',
-                  backgroundColor: paymentMsg.type === 'success' ? 'var(--status-completed-bg)' : '#FDE8E9',
-                  color: paymentMsg.type === 'success' ? 'var(--status-completed)' : '#D13438',
-                  border: `1px solid ${paymentMsg.type === 'success' ? '#108A56' : '#D13438'}`,
-                }}
-              >
-                {paymentMsg.text}
+              <div className={`alert alert-${paymentMsg.type}`}>
+                {paymentMsg.type === 'success' ? <CheckCircle size={16} /> : <AlertCircle size={16} />}
+                <span>{paymentMsg.text}</span>
               </div>
             )}
 
@@ -282,34 +280,23 @@ export default function Invoices() {
               {selectedInvoice.payments?.length > 0 ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   {selectedInvoice.payments.map((p) => (
-                    <div 
-                      key={p.payment_id}
-                      style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        padding: '8px 12px',
-                        backgroundColor: '#F9FAFD',
-                        borderRadius: 'var(--radius-sm)',
-                        fontSize: '0.825rem',
-                        border: '1px solid var(--border-subtle)',
-                      }}
-                    >
+                    <div key={p.payment_id} className="line-item">
                       <div>
-                        <strong>৳ {parseFloat(p.amount_paid).toLocaleString()}</strong>
-                        <span style={{ color: 'var(--text-muted)', marginLeft: '8px', textTransform: 'capitalize' }}>
-                          via {p.payment_method.replace('_', ' ')}
+                        <strong style={{ color: 'var(--metallic-dark)' }}>৳ {parseFloat(p.amount_paid).toLocaleString()}</strong>
+                        <span style={{ color: 'var(--text-muted)', marginLeft: '8px', textTransform: 'capitalize', fontSize: '0.8rem' }}>
+                          via {p.payment_method.replace(/_/g, ' ')}
                         </span>
                       </div>
-                      <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>
+                      <span className="text-small text-muted">
                         {new Date(p.payment_date).toLocaleDateString()}
                       </span>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                  No payments made towards this invoice yet.
-                </p>
+                <div className="alert alert-info" style={{ fontSize: '0.82rem' }}>
+                  No payments recorded yet. Use the form below to record a payment.
+                </div>
               )}
             </div>
 

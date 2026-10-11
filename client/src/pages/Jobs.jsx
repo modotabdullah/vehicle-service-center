@@ -13,8 +13,9 @@ import {
   Receipt,
   Clock,
   CheckCircle,
-  FileText,
   AlertCircle,
+  XCircle,
+  ChevronRight,
 } from 'lucide-react';
 
 export default function Jobs() {
@@ -24,46 +25,34 @@ export default function Jobs() {
   const [activeFilter, setActiveFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Selected job for detail modal
   const [selectedJob, setSelectedJob] = useState(null);
   const [jobDetailsLoading, setJobDetailsLoading] = useState(false);
 
-  // New Job Modal state
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [vehiclesList, setVehiclesList] = useState([]);
   const [customersList, setCustomersList] = useState([]);
   const [mechanicsList, setMechanicsList] = useState([]);
-  const [newJobForm, setNewJobForm] = useState({
-    vehicle_id: '',
-    customer_id: '',
-    mechanic_id: '',
-  });
+  const [newJobForm, setNewJobForm] = useState({ vehicle_id: '', customer_id: '', mechanic_id: '' });
 
-  // Adding line items & parts to selected job
   const [newItemDesc, setNewItemDesc] = useState('');
   const [newItemCost, setNewItemCost] = useState('');
   const [inventoryParts, setInventoryParts] = useState([]);
   const [selectedPartId, setSelectedPartId] = useState('');
   const [partQuantity, setPartQuantity] = useState(1);
 
-  // Action status message
   const [actionMessage, setActionMessage] = useState(null);
 
   const fetchJobs = async () => {
     setLoading(true);
     try {
-      const params = {};
       if (activeFilter === 'active') {
         const data = await api.jobs.getActive();
         setJobs(data);
         return;
       }
-      if (activeFilter !== 'all') {
-        params.status = activeFilter;
-      }
-      if (searchQuery.trim()) {
-        params.search = searchQuery.trim();
-      }
+      const params = {};
+      if (activeFilter !== 'all') params.status = activeFilter;
+      if (searchQuery.trim()) params.search = searchQuery.trim();
       const data = await api.jobs.getAll(params);
       setJobs(data);
     } catch (err) {
@@ -73,23 +62,16 @@ export default function Jobs() {
     }
   };
 
-  useEffect(() => {
-    fetchJobs();
-  }, [activeFilter]);
+  useEffect(() => { fetchJobs(); }, [activeFilter]);
 
-  const handleSearch = (e) => {
-    e.preventDefault();
-    fetchJobs();
-  };
+  const handleSearch = (e) => { e.preventDefault(); fetchJobs(); };
 
-  // Open job details
   const openJobDetails = async (jobId) => {
     setJobDetailsLoading(true);
     setActionMessage(null);
     try {
       const details = await api.jobs.getById(jobId);
       setSelectedJob(details);
-      // Pre-load inventory parts for quick allocation
       if (hasRole('system_admin', 'service_advisor', 'mechanic')) {
         const parts = await api.inventory.getAll();
         setInventoryParts(parts);
@@ -101,12 +83,11 @@ export default function Jobs() {
     }
   };
 
-  // Status update
   const handleUpdateStatus = async (newStatus) => {
     if (!selectedJob) return;
     try {
       await api.jobs.updateStatus(selectedJob.job_id, { status: newStatus });
-      setActionMessage({ type: 'success', text: `Status updated to ${newStatus}` });
+      setActionMessage({ type: 'success', text: `Status updated to "${newStatus.replace('_', ' ')}"` });
       openJobDetails(selectedJob.job_id);
       fetchJobs();
     } catch (err) {
@@ -114,7 +95,6 @@ export default function Jobs() {
     }
   };
 
-  // Add Service Item
   const handleAddServiceItem = async (e) => {
     e.preventDefault();
     if (!newItemDesc || !newItemCost) return;
@@ -133,7 +113,6 @@ export default function Jobs() {
     }
   };
 
-  // Add Part Usage (triggers DB trigger for auto inventory stock reduction)
   const handleAddPartUsage = async (e) => {
     e.preventDefault();
     if (!selectedPartId || !partQuantity) return;
@@ -144,7 +123,7 @@ export default function Jobs() {
       });
       setSelectedPartId('');
       setPartQuantity(1);
-      setActionMessage({ type: 'success', text: 'Part added! Inventory quantity automatically decremented.' });
+      setActionMessage({ type: 'success', text: 'Part allocated! Inventory auto-decremented.' });
       openJobDetails(selectedJob.job_id);
       fetchJobs();
     } catch (err) {
@@ -152,7 +131,6 @@ export default function Jobs() {
     }
   };
 
-  // Generate Invoice
   const handleGenerateInvoice = async () => {
     if (!selectedJob) return;
     try {
@@ -165,7 +143,6 @@ export default function Jobs() {
     }
   };
 
-  // Pre-load data for Create Job modal
   const handleOpenCreateModal = async () => {
     try {
       const [v, c, m] = await Promise.all([
@@ -183,32 +160,43 @@ export default function Jobs() {
     }
   };
 
-  // Create Job submit
   const handleCreateJob = async (e) => {
     e.preventDefault();
     try {
       await api.jobs.create(newJobForm);
       setIsCreateModalOpen(false);
       fetchJobs();
-      alert('Service job created successfully via stored procedure!');
+      setActionMessage({ type: 'success', text: 'Service job created successfully!' });
     } catch (err) {
       alert(`Error creating job: ${err.message}`);
     }
   };
 
-  return (
-    <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      {/* Top Action Bar */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '14px' }}>
-        <div>
-          <h2 style={{ fontSize: '1.6rem', color: 'var(--metallic-dark)', marginBottom: '4px' }}>
-            Service Job Cards
-          </h2>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
-            Track vehicle inspection, mechanic assignments, labor tasks, and spare parts.
-          </p>
-        </div>
+  const filterTabs = [
+    { id: 'all', label: 'All Jobs', icon: null },
+    { id: 'active', label: 'Active Bays', icon: null },
+    { id: 'pending', label: 'Pending', icon: null },
+    { id: 'in_progress', label: 'In Progress', icon: null },
+    { id: 'completed', label: 'Completed', icon: null },
+    { id: 'cancelled', label: 'Cancelled', icon: null },
+  ];
 
+  const statusColors = {
+    pending: '#D97706',
+    in_progress: '#3D52A0',
+    completed: '#059669',
+    cancelled: '#DC2626',
+  };
+
+  return (
+    <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
+
+      {/* Header */}
+      <div className="section-header">
+        <div>
+          <h2 className="section-title">Service Job Cards</h2>
+          <p className="section-subtitle">Track vehicle inspection, mechanic assignments, labor tasks &amp; spare parts.</p>
+        </div>
         {hasRole('system_admin', 'service_advisor') && (
           <button className="btn btn-primary" onClick={handleOpenCreateModal}>
             <Plus size={16} />
@@ -217,56 +205,50 @@ export default function Jobs() {
         )}
       </div>
 
-      {/* Filter Tabs & Search */}
-      <div 
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: '12px',
-          backgroundColor: '#FFFFFF',
-          padding: '12px 16px',
-          borderRadius: 'var(--radius-md)',
-          border: '1px solid var(--border-subtle)',
-          boxShadow: 'var(--shadow-sm)',
-        }}
-      >
-        {/* Tabs */}
-        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-          {[
-            { id: 'all', label: 'All Jobs' },
-            { id: 'active', label: 'Active Bays (View)' },
-            { id: 'pending', label: 'Pending' },
-            { id: 'in_progress', label: 'In Progress' },
-            { id: 'completed', label: 'Completed' },
-            { id: 'cancelled', label: 'Cancelled' },
-          ].map((tab) => (
+      {/* Action message at top level */}
+      {actionMessage && !selectedJob && (
+        <div className={`alert alert-${actionMessage.type}`}>
+          {actionMessage.type === 'success' ? <CheckCircle size={16} /> : <AlertCircle size={16} />}
+          <span>{actionMessage.text}</span>
+        </div>
+      )}
+
+      {/* Filter & Search Bar */}
+      <div className="filter-bar">
+        <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
+          {filterTabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveFilter(tab.id)}
-              className="btn btn-sm"
-              style={{
-                backgroundColor: activeFilter === tab.id ? 'var(--metallic-dark)' : 'transparent',
-                color: activeFilter === tab.id ? '#FFFFFF' : 'var(--text-muted)',
-                fontWeight: activeFilter === tab.id ? 700 : 500,
-              }}
+              className={`tab-btn ${activeFilter === tab.id ? 'active' : ''}`}
             >
               {tab.label}
             </button>
           ))}
         </div>
 
-        {/* Search */}
-        <form onSubmit={handleSearch} style={{ display: 'flex', gap: '8px', minWidth: '260px' }}>
-          <input
-            type="text"
-            className="form-input"
-            placeholder="Search license plate, make, owner..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            style={{ padding: '6px 12px', fontSize: '0.8rem', flex: 1 }}
-          />
+        <form onSubmit={handleSearch} style={{ display: 'flex', gap: '8px', minWidth: '240px' }}>
+          <div style={{ position: 'relative', flex: 1 }}>
+            <Search
+              size={14}
+              style={{
+                position: 'absolute',
+                left: '11px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                color: 'var(--text-light)',
+                pointerEvents: 'none',
+              }}
+            />
+            <input
+              type="text"
+              className="form-input"
+              placeholder="Search plate, make, owner..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{ paddingLeft: '32px', padding: '7px 12px 7px 32px', fontSize: '0.8rem' }}
+            />
+          </div>
           <button type="submit" className="btn btn-sm btn-secondary">
             <Search size={14} />
           </button>
@@ -284,22 +266,30 @@ export default function Jobs() {
               <th>Mechanic</th>
               <th>Labor Cost</th>
               <th>Parts Cost</th>
-              <th>Total Cost</th>
+              <th>Total</th>
               <th>Status</th>
-              <th style={{ textAlign: 'right' }}>Actions</th>
+              <th style={{ textAlign: 'right' }}>Action</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr>
-                <td colSpan="9" style={{ textAlign: 'center', padding: '36px', color: 'var(--text-muted)' }}>
-                  Loading job records...
-                </td>
-              </tr>
+              Array.from({ length: 5 }).map((_, i) => (
+                <tr key={i}>
+                  {Array.from({ length: 9 }).map((_, j) => (
+                    <td key={j}>
+                      <div className="skeleton" style={{ height: '16px', borderRadius: '6px', width: j === 8 ? '70px' : '100%' }} />
+                    </td>
+                  ))}
+                </tr>
+              ))
             ) : jobs.length === 0 ? (
               <tr>
-                <td colSpan="9" style={{ textAlign: 'center', padding: '36px', color: 'var(--text-muted)' }}>
-                  No service job records found matching criteria.
+                <td colSpan="9">
+                  <div className="empty-state">
+                    <div className="empty-state-icon"><Wrench size={28} /></div>
+                    <h4>No service jobs found</h4>
+                    <p>No records match your current filter. Try a different status or search term.</p>
+                  </div>
                 </td>
               </tr>
             ) : (
@@ -308,39 +298,42 @@ export default function Jobs() {
                 return (
                   <tr key={job.job_id}>
                     <td>
-                      <span style={{ fontWeight: 700, color: 'var(--metallic-dark)' }}>
+                      <span
+                        style={{
+                          fontWeight: 800,
+                          color: 'var(--metallic-dark)',
+                          fontFamily: 'var(--font-heading)',
+                          fontSize: '0.95rem',
+                        }}
+                      >
                         #{job.job_id}
                       </span>
                     </td>
                     <td>
                       <div>
                         <strong>{job.license_plate}</strong>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                          {job.make} {job.model} ({job.year || ''})
-                        </div>
+                        <div className="text-small text-muted">{job.make} {job.model} {job.year ? `(${job.year})` : ''}</div>
                       </div>
                     </td>
                     <td>
                       <div>
-                        <span>{job.customer_name}</span>
+                        <span style={{ fontWeight: 600 }}>{job.customer_name}</span>
                         {job.customer_phone && (
-                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                            {job.customer_phone}
-                          </div>
+                          <div className="text-small text-muted">{job.customer_phone}</div>
                         )}
                       </div>
                     </td>
                     <td>
                       {job.mechanic_name ? (
-                        <span>{job.mechanic_name}</span>
+                        <span style={{ fontWeight: 500 }}>{job.mechanic_name}</span>
                       ) : (
-                        <span style={{ color: 'var(--text-light)', fontStyle: 'italic' }}>Unassigned</span>
+                        <em style={{ color: 'var(--text-light)', fontSize: '0.82rem' }}>Unassigned</em>
                       )}
                     </td>
-                    <td>৳ {parseFloat(job.total_labor_cost || 0).toLocaleString()}</td>
-                    <td>৳ {parseFloat(job.total_parts_cost || 0).toLocaleString()}</td>
+                    <td style={{ fontWeight: 600 }}>৳ {parseFloat(job.total_labor_cost || 0).toLocaleString()}</td>
+                    <td style={{ fontWeight: 600 }}>৳ {parseFloat(job.total_parts_cost || 0).toLocaleString()}</td>
                     <td>
-                      <strong style={{ color: 'var(--metallic-dark)' }}>
+                      <strong style={{ color: 'var(--metallic-dark)', fontFamily: 'var(--font-heading)' }}>
                         ৳ {total.toLocaleString()}
                       </strong>
                     </td>
@@ -352,7 +345,8 @@ export default function Jobs() {
                         className="btn btn-sm btn-primary"
                         onClick={() => openJobDetails(job.job_id)}
                       >
-                        Manage
+                        <span>Manage</span>
+                        <ChevronRight size={14} />
                       </button>
                     </td>
                   </tr>
@@ -363,150 +357,147 @@ export default function Jobs() {
         </table>
       </div>
 
-      {/* ========================================================
-          JOB DETAILS & MANAGEMENT MODAL
-         ======================================================== */}
+      {/* ===== JOB DETAILS MODAL ===== */}
       <Modal
         isOpen={!!selectedJob}
-        onClose={() => setSelectedJob(null)}
-        title={selectedJob ? `Job Card #${selectedJob.job_id} - ${selectedJob.license_plate}` : 'Job Details'}
-        maxWidth="750px"
+        onClose={() => { setSelectedJob(null); setActionMessage(null); }}
+        title={selectedJob ? `Job Card #${selectedJob.job_id} — ${selectedJob.license_plate}` : 'Job Details'}
+        maxWidth="780px"
       >
         {selectedJob && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            {/* Action Feedback Banner */}
+
+            {/* Action Feedback */}
             {actionMessage && (
-              <div
-                style={{
-                  padding: '10px 14px',
-                  borderRadius: 'var(--radius-sm)',
-                  fontSize: '0.825rem',
-                  backgroundColor: actionMessage.type === 'success' ? 'var(--status-completed-bg)' : '#FDE8E9',
-                  color: actionMessage.type === 'success' ? 'var(--status-completed)' : '#D13438',
-                  border: `1px solid ${actionMessage.type === 'success' ? '#108A56' : '#D13438'}`,
-                }}
-              >
-                {actionMessage.text}
+              <div className={`alert alert-${actionMessage.type}`}>
+                {actionMessage.type === 'success' ? <CheckCircle size={16} /> : <AlertCircle size={16} />}
+                <span>{actionMessage.text}</span>
               </div>
             )}
 
-            {/* Quick Header Details */}
-            <div 
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-                gap: '12px',
-                padding: '14px',
-                backgroundColor: 'var(--metallic-silk)',
-                borderRadius: 'var(--radius-sm)',
-              }}
-            >
-              <div>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Vehicle</span>
-                <div style={{ fontWeight: 700, color: 'var(--metallic-dark)' }}>
-                  {selectedJob.make} {selectedJob.model} ({selectedJob.year})
-                </div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--metallic-steel)' }}>
-                  VIN: {selectedJob.vin}
-                </div>
+            {/* Quick Info Grid */}
+            <div className="info-grid">
+              <div className="info-cell">
+                <label>Vehicle</label>
+                <div className="info-value">{selectedJob.make} {selectedJob.model} ({selectedJob.year})</div>
+                <div className="info-sub"><code>{selectedJob.license_plate}</code></div>
               </div>
-
-              <div>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Owner</span>
-                <div style={{ fontWeight: 600 }}>{selectedJob.customer_name}</div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{selectedJob.customer_phone}</div>
+              <div className="info-cell">
+                <label>Owner</label>
+                <div className="info-value">{selectedJob.customer_name}</div>
+                <div className="info-sub">{selectedJob.customer_phone}</div>
               </div>
-
-              <div>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Mechanic</span>
-                <div style={{ fontWeight: 600 }}>
-                  {selectedJob.mechanic_name || 'Unassigned'}
-                </div>
+              <div className="info-cell">
+                <label>Mechanic</label>
+                <div className="info-value">{selectedJob.mechanic_name || 'Unassigned'}</div>
                 {selectedJob.specialization && (
-                  <div style={{ fontSize: '0.75rem', color: 'var(--metallic-steel)' }}>
-                    {selectedJob.specialization}
-                  </div>
+                  <div className="info-sub">{selectedJob.specialization}</div>
                 )}
               </div>
-
-              <div>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Current Status</span>
+              <div className="info-cell">
+                <label>Status</label>
                 <div style={{ marginTop: '4px' }}>
                   <StatusBadge status={selectedJob.status} />
                 </div>
               </div>
             </div>
 
-            {/* Status Change Control (Staff Only) */}
+            {/* Status Control */}
             {hasRole('system_admin', 'service_advisor', 'mechanic') && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 0', borderBottom: '1px solid var(--border-subtle)' }}>
-                <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--metallic-dark)' }}>
-                  Update Job State:
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  padding: '12px 16px',
+                  backgroundColor: 'var(--metallic-light)',
+                  borderRadius: 'var(--radius-sm)',
+                  border: '1px solid var(--border-subtle)',
+                  flexWrap: 'wrap',
+                }}
+              >
+                <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--metallic-dark)', whiteSpace: 'nowrap' }}>
+                  Update Status:
                 </span>
-                <div style={{ display: 'flex', gap: '6px' }}>
-                  {['pending', 'in_progress', 'completed', 'cancelled'].map((st) => (
-                    <button
-                      key={st}
-                      type="button"
-                      className="btn btn-sm"
-                      style={{
-                        backgroundColor: selectedJob.status === st ? 'var(--metallic-dark)' : 'var(--metallic-silk)',
-                        color: selectedJob.status === st ? '#FFFFFF' : 'var(--metallic-dark)',
-                        textTransform: 'capitalize',
-                      }}
-                      onClick={() => handleUpdateStatus(st)}
-                    >
-                      {st.replace('_', ' ')}
-                    </button>
-                  ))}
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                  {['pending', 'in_progress', 'completed', 'cancelled'].map((st) => {
+                    const isActive = selectedJob.status === st;
+                    return (
+                      <button
+                        key={st}
+                        type="button"
+                        className="btn btn-sm"
+                        style={{
+                          backgroundColor: isActive ? (statusColors[st] || 'var(--metallic-dark)') : 'transparent',
+                          color: isActive ? '#FFFFFF' : 'var(--text-muted)',
+                          border: `1.5px solid ${isActive ? (statusColors[st] || 'var(--metallic-dark)') : 'var(--border-subtle)'}`,
+                          fontWeight: isActive ? 700 : 500,
+                          textTransform: 'capitalize',
+                          boxShadow: isActive ? `0 3px 10px ${statusColors[st] || 'rgba(61,82,160,0.3)'}30` : 'none',
+                        }}
+                        onClick={() => handleUpdateStatus(st)}
+                      >
+                        {st.replace('_', ' ')}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}
 
-            {/* Section 1: Service Labor Items */}
+            {/* Section 1: Labor Items */}
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <h4 style={{ fontSize: '0.95rem', color: 'var(--metallic-dark)' }}>
-                  1. Labor & Service Tasks (Total: ৳ {parseFloat(selectedJob.total_labor_cost || 0).toLocaleString()})
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                <h4 style={{ fontSize: '0.95rem', color: 'var(--metallic-dark)', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span
+                    style={{
+                      width: '26px',
+                      height: '26px',
+                      borderRadius: '50%',
+                      background: 'linear-gradient(135deg, #3D52A0, #7091E6)',
+                      color: '#FFF',
+                      fontSize: '0.75rem',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontWeight: 800,
+                    }}
+                  >
+                    1
+                  </span>
+                  Labor &amp; Service Tasks
                 </h4>
+                <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--metallic-dark)' }}>
+                  ৳ {parseFloat(selectedJob.total_labor_cost || 0).toLocaleString()}
+                </span>
               </div>
 
               {selectedJob.items?.length > 0 ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '12px' }}>
                   {selectedJob.items.map((item) => (
-                    <div
-                      key={item.item_id}
-                      style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        padding: '8px 12px',
-                        backgroundColor: '#F9FAFD',
-                        borderRadius: 'var(--radius-sm)',
-                        fontSize: '0.85rem',
-                        border: '1px solid var(--border-subtle)',
-                      }}
-                    >
-                      <span>{item.description}</span>
-                      <strong>৳ {parseFloat(item.labor_cost).toLocaleString()}</strong>
+                    <div key={item.item_id} className="line-item">
+                      <span style={{ color: 'var(--text-main)', fontWeight: 500 }}>{item.description}</span>
+                      <strong style={{ color: 'var(--metallic-dark)', fontFamily: 'var(--font-heading)' }}>
+                        ৳ {parseFloat(item.labor_cost).toLocaleString()}
+                      </strong>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '10px' }}>
-                  No labor line items logged yet.
-                </p>
+                <div className="alert alert-info" style={{ marginBottom: '10px', fontSize: '0.82rem' }}>
+                  No labor tasks logged yet. Add one below.
+                </div>
               )}
 
-              {/* Add Labor Item Form */}
               {hasRole('system_admin', 'service_advisor', 'mechanic') && selectedJob.status !== 'completed' && (
                 <form onSubmit={handleAddServiceItem} style={{ display: 'flex', gap: '8px' }}>
                   <input
                     type="text"
                     className="form-input"
-                    placeholder="Task description (e.g. Brake pad change)"
+                    placeholder="Task description (e.g. Brake pad replacement)"
                     value={newItemDesc}
                     onChange={(e) => setNewItemDesc(e.target.value)}
-                    style={{ flex: 2, padding: '7px 10px', fontSize: '0.825rem' }}
+                    style={{ flex: 2, padding: '8px 12px', fontSize: '0.825rem' }}
                     required
                   />
                   <input
@@ -516,73 +507,83 @@ export default function Jobs() {
                     placeholder="Labor cost (৳)"
                     value={newItemCost}
                     onChange={(e) => setNewItemCost(e.target.value)}
-                    style={{ flex: 1, padding: '7px 10px', fontSize: '0.825rem' }}
+                    style={{ flex: 1, padding: '8px 12px', fontSize: '0.825rem' }}
                     required
                   />
-                  <button type="submit" className="btn btn-sm btn-secondary">
-                    <Plus size={14} /> Add Labor
+                  <button type="submit" className="btn btn-sm btn-secondary" style={{ flexShrink: 0 }}>
+                    <Plus size={14} /> Add
                   </button>
                 </form>
               )}
             </div>
 
-            {/* Section 2: Spare Parts Allocated */}
+            <hr className="divider" />
+
+            {/* Section 2: Spare Parts */}
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <h4 style={{ fontSize: '0.95rem', color: 'var(--metallic-dark)' }}>
-                  2. Spare Parts Consumed (Total: ৳ {parseFloat(selectedJob.total_parts_cost || 0).toLocaleString()})
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                <h4 style={{ fontSize: '0.95rem', color: 'var(--metallic-dark)', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span
+                    style={{
+                      width: '26px',
+                      height: '26px',
+                      borderRadius: '50%',
+                      background: 'linear-gradient(135deg, #3D52A0, #7091E6)',
+                      color: '#FFF',
+                      fontSize: '0.75rem',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontWeight: 800,
+                    }}
+                  >
+                    2
+                  </span>
+                  Spare Parts Consumed
                 </h4>
+                <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--metallic-dark)' }}>
+                  ৳ {parseFloat(selectedJob.total_parts_cost || 0).toLocaleString()}
+                </span>
               </div>
 
               {selectedJob.parts?.length > 0 ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '12px' }}>
                   {selectedJob.parts.map((p) => (
-                    <div
-                      key={p.usage_id}
-                      style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        padding: '8px 12px',
-                        backgroundColor: '#F9FAFD',
-                        borderRadius: 'var(--radius-sm)',
-                        fontSize: '0.85rem',
-                        border: '1px solid var(--border-subtle)',
-                      }}
-                    >
+                    <div key={p.usage_id} className="line-item">
                       <div>
-                        <strong>{p.part_name}</strong>
+                        <strong style={{ fontWeight: 700 }}>{p.part_name}</strong>
                         <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginLeft: '8px' }}>
-                          ({p.part_number}) x {p.quantity_used}
+                          <code>{p.part_number}</code> × {p.quantity_used}
                         </span>
                       </div>
-                      <strong>৳ {parseFloat(p.subtotal).toLocaleString()}</strong>
+                      <strong style={{ color: 'var(--metallic-dark)', fontFamily: 'var(--font-heading)' }}>
+                        ৳ {parseFloat(p.subtotal).toLocaleString()}
+                      </strong>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '10px' }}>
-                  No spare parts consumed yet.
-                </p>
+                <div className="alert alert-info" style={{ marginBottom: '10px', fontSize: '0.82rem' }}>
+                  No spare parts allocated yet. Use the form below.
+                </div>
               )}
 
-              {/* Add Part Form */}
               {hasRole('system_admin', 'service_advisor', 'mechanic') && selectedJob.status !== 'completed' && (
                 <form onSubmit={handleAddPartUsage} style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                   <select
                     className="form-select"
                     value={selectedPartId}
                     onChange={(e) => setSelectedPartId(e.target.value)}
-                    style={{ flex: 2, padding: '7px 10px', fontSize: '0.825rem' }}
+                    style={{ flex: 2, minWidth: '200px', padding: '8px 36px 8px 12px', fontSize: '0.825rem' }}
                     required
                   >
-                    <option value="">-- Choose Spare Part from Inventory --</option>
+                    <option value="">— Select part from inventory —</option>
                     {inventoryParts.map((part) => (
                       <option key={part.part_id} value={part.part_id}>
-                        {part.part_name} ({part.part_number}) - Stock: {part.quantity_in_stock} (৳{part.unit_price})
+                        {part.part_name} ({part.part_number}) — Stock: {part.quantity_in_stock} @ ৳{part.unit_price}
                       </option>
                     ))}
                   </select>
-
                   <input
                     type="number"
                     min="1"
@@ -590,48 +591,51 @@ export default function Jobs() {
                     placeholder="Qty"
                     value={partQuantity}
                     onChange={(e) => setPartQuantity(e.target.value)}
-                    style={{ width: '80px', padding: '7px 10px', fontSize: '0.825rem' }}
+                    style={{ width: '80px', padding: '8px 10px', fontSize: '0.825rem' }}
                     required
                   />
-
-                  <button type="submit" className="btn btn-sm btn-secondary">
-                    <Plus size={14} /> Allocate Part
+                  <button type="submit" className="btn btn-sm btn-secondary" style={{ flexShrink: 0 }}>
+                    <Plus size={14} /> Allocate
                   </button>
                 </form>
               )}
             </div>
 
-            {/* Section 3: Invoicing State */}
-            <div 
+            <hr className="divider" />
+
+            {/* Section 3: Invoice */}
+            <div
               style={{
-                marginTop: '10px',
-                padding: '16px',
-                border: '1px solid var(--border-subtle)',
+                padding: '16px 20px',
                 borderRadius: 'var(--radius-sm)',
-                backgroundColor: 'var(--metallic-light)',
+                border: '1.5px solid var(--border-subtle)',
+                background: 'linear-gradient(135deg, var(--metallic-light) 0%, #FAFBFF 100%)',
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
                 <div>
-                  <h4 style={{ fontSize: '0.95rem', color: 'var(--metallic-dark)', marginBottom: '2px' }}>
-                    Billing & Invoicing
+                  <h4 style={{ fontSize: '0.95rem', color: 'var(--metallic-dark)', fontWeight: 800, marginBottom: '3px' }}>
+                    Billing &amp; Invoice
                   </h4>
-                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                    Total Estimated: ৳ {(parseFloat(selectedJob.total_labor_cost || 0) + parseFloat(selectedJob.total_parts_cost || 0)).toLocaleString()}
+                  <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+                    Estimated Total: <strong style={{ color: 'var(--text-main)' }}>
+                      ৳ {(parseFloat(selectedJob.total_labor_cost || 0) + parseFloat(selectedJob.total_parts_cost || 0)).toLocaleString()}
+                    </strong>
                   </p>
                 </div>
 
                 {selectedJob.invoice ? (
                   <div style={{ textAlign: 'right' }}>
                     <StatusBadge status={selectedJob.invoice.payment_status} />
-                    <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--metallic-dark)', marginTop: '4px' }}>
+                    <div style={{ fontWeight: 800, fontSize: '1.1rem', color: 'var(--metallic-dark)', marginTop: '5px', fontFamily: 'var(--font-heading)' }}>
                       Grand Total: ৳ {parseFloat(selectedJob.invoice.grand_total).toLocaleString()}
                     </div>
                   </div>
                 ) : (
                   hasRole('system_admin', 'service_advisor') && (
                     <button className="btn btn-sm btn-primary" onClick={handleGenerateInvoice}>
-                      <Receipt size={14} /> Generate Invoice (5% Tax)
+                      <Receipt size={14} />
+                      Generate Invoice (5% Tax)
                     </button>
                   )
                 )}
@@ -641,9 +645,7 @@ export default function Jobs() {
         )}
       </Modal>
 
-      {/* ========================================================
-          CREATE NEW SERVICE JOB MODAL (Procedure create_service_job)
-         ======================================================== */}
+      {/* ===== CREATE JOB MODAL ===== */}
       <Modal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
@@ -651,13 +653,16 @@ export default function Jobs() {
       >
         <form onSubmit={handleCreateJob}>
           <div className="form-group">
-            <label className="form-label">Vehicle (Required)</label>
+            <label className="form-label">
+              <Car size={13} style={{ marginRight: '5px', verticalAlign: 'middle' }} />
+              Vehicle (Required)
+            </label>
             <select
               className="form-select"
               value={newJobForm.vehicle_id}
               onChange={(e) => {
                 const vId = e.target.value;
-                const foundV = vehiclesList.find(v => v.vehicle_id === parseInt(vId, 10));
+                const foundV = vehiclesList.find((v) => v.vehicle_id === parseInt(vId, 10));
                 setNewJobForm((prev) => ({
                   ...prev,
                   vehicle_id: vId,
@@ -666,26 +671,31 @@ export default function Jobs() {
               }}
               required
             >
-              <option value="">-- Select Vehicle --</option>
+              <option value="">— Select a vehicle —</option>
               {vehiclesList
                 .filter((v) => !newJobForm.customer_id || v.customer_id === parseInt(newJobForm.customer_id, 10))
                 .map((v) => (
                   <option key={v.vehicle_id} value={v.vehicle_id}>
-                    {v.license_plate} - {v.make} {v.model} ({v.year}) [Owner: {v.customer_name}]
+                    {v.license_plate} — {v.make} {v.model} ({v.year}) [Owner: {v.customer_name}]
                   </option>
                 ))}
             </select>
           </div>
 
           <div className="form-group">
-            <label className="form-label">Customer / Vehicle Owner (Required)</label>
+            <label className="form-label">
+              <User size={13} style={{ marginRight: '5px', verticalAlign: 'middle' }} />
+              Customer / Vehicle Owner (Required)
+            </label>
             <select
               className="form-select"
               value={newJobForm.customer_id}
               onChange={(e) => {
                 const cId = e.target.value;
                 setNewJobForm((prev) => {
-                  const currentVehicleBelongs = prev.vehicle_id && vehiclesList.find(v => v.vehicle_id === parseInt(prev.vehicle_id, 10))?.customer_id === parseInt(cId, 10);
+                  const currentVehicleBelongs =
+                    prev.vehicle_id &&
+                    vehiclesList.find((v) => v.vehicle_id === parseInt(prev.vehicle_id, 10))?.customer_id === parseInt(cId, 10);
                   return {
                     ...prev,
                     customer_id: cId,
@@ -695,7 +705,7 @@ export default function Jobs() {
               }}
               required
             >
-              <option value="">-- Select Customer --</option>
+              <option value="">— Select customer —</option>
               {customersList.map((c) => (
                 <option key={c.customer_id} value={c.customer_id}>
                   {c.full_name} ({c.phone || c.email || `ID #${c.customer_id}`})
@@ -704,24 +714,42 @@ export default function Jobs() {
             </select>
           </div>
 
-          <div className="form-group" style={{ marginBottom: '24px' }}>
-            <label className="form-label">Assign Mechanic (Optional)</label>
+          <div className="form-group" style={{ marginBottom: '28px' }}>
+            <label className="form-label">
+              <Wrench size={13} style={{ marginRight: '5px', verticalAlign: 'middle' }} />
+              Assign Mechanic (Optional)
+            </label>
             <select
               className="form-select"
               value={newJobForm.mechanic_id}
               onChange={(e) => setNewJobForm((prev) => ({ ...prev, mechanic_id: e.target.value }))}
             >
-              <option value="">-- Auto-assign First Active Mechanic --</option>
+              <option value="">— Auto-assign first available mechanic —</option>
               {mechanicsList.map((m) => (
                 <option key={m.mechanic_id} value={m.mechanic_id}>
-                  {m.full_name} ({m.specialization || 'General'}) - ৳{m.hourly_rate}/hr
+                  {m.full_name} ({m.specialization || 'General'}) — ৳{m.hourly_rate}/hr
                 </option>
               ))}
             </select>
           </div>
 
-          <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>
-            Confirm & Open Job Card
+          <div
+            style={{
+              padding: '12px 16px',
+              backgroundColor: 'var(--status-progress-bg)',
+              borderRadius: 'var(--radius-sm)',
+              border: '1px solid var(--metallic-mist)',
+              fontSize: '0.82rem',
+              color: 'var(--metallic-dark)',
+              marginBottom: '20px',
+            }}
+          >
+            💡 This will call the <code>create_service_job</code> stored procedure and automatically create an audit log entry.
+          </div>
+
+          <button type="submit" className="btn btn-primary" style={{ width: '100%', padding: '13px', fontSize: '0.95rem' }}>
+            <Wrench size={16} />
+            Confirm &amp; Open Job Card
           </button>
         </form>
       </Modal>

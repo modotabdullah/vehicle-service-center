@@ -17,20 +17,58 @@ function AppContent() {
 
   if (loading) {
     return (
-      <div 
+      <div
         style={{
           minHeight: '100vh',
           display: 'flex',
+          flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          backgroundColor: '#F4F6FC',
-          color: 'var(--metallic-dark)',
-          fontWeight: 600,
-          fontFamily: 'var(--font-heading)',
-          fontSize: '1.2rem',
+          background: 'linear-gradient(135deg, #1A2038 0%, #3D52A0 60%, #7091E6 100%)',
+          backgroundSize: '300% 300%',
+          animation: 'gradientShift 6s ease infinite',
         }}
       >
-        Initializing ApexCare Engine...
+        <div
+          style={{
+            width: '64px',
+            height: '64px',
+            borderRadius: '18px',
+            background: 'rgba(255,255,255,0.15)',
+            backdropFilter: 'blur(8px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginBottom: '24px',
+            border: '1px solid rgba(255,255,255,0.2)',
+            animation: 'floatY 2s ease-in-out infinite',
+          }}
+        >
+          <div className="spinner" style={{ width: '28px', height: '28px', borderColor: 'rgba(255,255,255,0.2)', borderTopColor: '#FFFFFF', borderWidth: '3px' }} />
+        </div>
+        <div
+          style={{
+            color: '#FFFFFF',
+            fontFamily: 'var(--font-heading)',
+            fontSize: '1.25rem',
+            fontWeight: 800,
+            letterSpacing: '-0.02em',
+            marginBottom: '6px',
+          }}
+        >
+          ApexCare
+        </div>
+        <div
+          style={{
+            color: 'rgba(237,232,245,0.7)',
+            fontSize: '0.8rem',
+            fontWeight: 600,
+            letterSpacing: '0.06em',
+            textTransform: 'uppercase',
+          }}
+        >
+          Initializing service engine...
+        </div>
       </div>
     );
   }
